@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{# --------------------------------------------------------------------------
+                                                                     HEADER
+-------------------------------------------------------------------------- #}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}
+{% endblock %}
+
+{# --------------------------------------------------------------------------
+                                                                     CONTENT
+-------------------------------------------------------------------------- #}
+{% block content %}
+<div class="row gap-3">
+{% for category in services %}
+
+  <div class="card-divider">
+    <h5>{{ category[0] }}</h5>
+  </div>
+  {% for service in category[1] %}
+  <div class="card" style="width: 16rem; padding:0px">
+    <div class="card-header">
+      <div class='container'>
+        <div class='image'><img src="{{ service['icon_url'] }}" class="card-img-top" alt="{{ service['title'] }}"/></div>
+        <div class='text'><h5>{{ service['title'] }}</h5></div>
+      </div>
+    </div>
+    <div class='card-body'>
+      {% if service['deployment'] == 'development' %}<span class='badge bg-warning'>Dev</span>{% endif %}
+      {% if service['sso'] %}<span class="badge bg-success">SSO</span>{% endif %}
+      <p class="card-text">{{ service['description'] }}</p>
+    </div>
+    <div class="card-footer" style="display: flex;justify-content:space-between">
+      <a href="#" class="btn btn-secondary">Info</a></span>
+      <a href="{{ service['url'] }}" target="{{ service['service'] }}" class="btn btn-primary">Launch</a></span>
+    </div>
+  </div>
+  {% endfor %}
+{% endfor %}
+</div>
+
+{# --------------------------------------------------------------------------
+                                                                 INFO MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='infoModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='infoModalTitle'></h5>
+        <button type='button' class='btn-close'
+data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='infoModalBody'>
+      </div>
+      <div class='modal-footer'>
+        <button id='info_mkay' type='button' class='btn btn-primary'
+data-bs-dismiss='modal'>Mkay</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

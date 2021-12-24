@@ -1,0 +1,9 @@
+#!/bin/sh
+
+export PYTHONPATH=.
+
+# inspection tests
+.tests/test-all || exit 1
+
+# functional testing
+pytest --cov=drax --cov-report=term tests/test_unit.py || exit 1 

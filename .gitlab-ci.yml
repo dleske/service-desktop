@@ -1,0 +1,196 @@
+# yamllint
+image: dleskecc/tester.py
+
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+  PYLINTRC: .tests/extras/pylintrc
+  PYTHONPATH: ${PYTHONPATH}:.
+  # Click command tests fail in Python 3.6 environments without the following
+  # https://click.palletsprojects.com/en/8.0.x/unicode-support/
+  LANG: C.UTF-8
+  #
+  # image names
+  TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
+  DEV_IMAGE: "${CI_REGISTRY_IMAGE}:dev"
+  PROD_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
+  SHA_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+
+stages:
+  - pre-test
+  - test
+  - build
+  - pre-deploy
+  - deploy
+
+default:
+  tags:
+    - unprivileged
+
+.code:
+  only:
+    changes:
+      - .gitlab-ci.yml
+      - ccldap
+      - "i18n/*"
+      - "drax/*.py"
+      - "drax/translations/**/*"
+      - "drax/sql/*.sql"
+      - "drax/sql/*.psql"
+      - requirements.txt
+      - ".tests/**/*"
+      - "tests/**/*"
+      - "deployment/*"
+
+.presentation:
+  only:
+    changes:
+      - "drax/static/**/*"
+      - "drax/templates/**/*"
+
+#.integration:
+#  before_script:
+#    - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
+#  variables:
+#    POSTGRES_PASSWORD: supersecretpassword
+#    DRAX_PGSQL_URI: postgresql://postgres:supersecretpassword@postgres/postgres
+#    DRAX_LDAP_URI: ldap://ldap
+#    DRAX_LDAP_SKIP_TLS: 'yes'
+#  services:
+#    - name: dleskecc/ldap-ctnr
+#      alias: ldap
+#    - name: postgres
+
+.build:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - echo "Building image to tag '$IMAGENAME' with build info '$BUILDINFO'"
+    - sed -ie 's/0+local.dev.version/'$BUILDINFO'/' drax/version.py
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile --destination $SHA_IMAGE --destination $IMAGENAME
+  dependencies:
+    - syntax
+
+# todos only occur in code.
+todos:
+  extends: .code
+  except:
+    - main
+  allow_failure: true
+  stage: pre-test
+  script:
+    - .tests/todos
+
+# todos only occur in code.  Remove `extends: .code` if this stops working.
+todos_main:
+  extends: .code
+  only:
+    - main
+  allow_failure: true
+  stage: pre-test
+  script:
+    - tests/linting/todos && true; todos=$?
+    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+    - test $todos -eq 0
+  artifacts:
+    # create artifact even when the job fails, which it should if todos > 0
+    when: always
+    paths: ['todos.svg']
+
+syntax:
+  extends: .code
+  stage: pre-test
+  script:
+    - .tests/test-all
+    - if test -n "$CI_COMMIT_TAG"; then BUILDINFO=$CI_COMMIT_TAG; else BUILDINFO=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd"); fi
+    - 'echo "Buildinfo: $BUILDINFO"'
+    - echo "BUILDINFO=$BUILDINFO" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+#unittest:
+#  extends: .code
+#  stage: pre-test
+#  script:
+#    - apt-get install -y libldap2-dev libsasl2-dev
+#    - pip3 install --upgrade pip
+#    - pip3 install -r requirements.txt -r tests/requirements.txt
+#    - pybabel compile -d drax/translations
+#    - pytest -v --cov=drax tests/test_sqlite.py
+
+#integration:
+#  extends:
+#    - .code
+#    - .integration
+#  stage: test
+#  script:
+#    - 'echo hi > /dev/tcp/postgres/5432 || echo "Could not contact Postgres container"'
+#    - 'echo hi > /dev/tcp/ldap/389 || echo "Could not contact LDAP container"'
+#    - apt-get install -y libldap2-dev libsasl2-dev
+#    - pip3 install --upgrade pip
+#    - pip3 install -r requirements.txt -r tests/requirements.txt
+#    - pybabel compile -d drax/translations
+#    - tests/test-all --pgsql --ldap
+
+build_test:
+  #extends:
+  #  - .code
+  #  - .presentation
+  #  - .build
+  extends:
+    - .build
+  stage: build
+  before_script:
+    - IMAGENAME=$TEST_IMAGE
+
+build_dev:
+  extends:
+    - .code
+    - .presentation
+    - .build
+  only:
+    - main
+  except:
+    - tags
+  stage: pre-deploy
+  before_script:
+    - IMAGENAME=$DEV_IMAGE
+
+build_release:
+  extends:
+    - .code
+    - .presentation
+    - .build
+  only:
+    - tags
+  stage: pre-deploy
+  before_script:
+    - IMAGENAME=$PROD_IMAGE
+
+deploy_development:
+  extends:
+    - .code
+    - .presentation
+  only:
+    - main
+  except:
+    - tags
+  stage: deploy
+  script:
+    - echo Not implemented
+
+deploy_release:
+  extends:
+    - .code
+    - .presentation
+  # Only deploy for tags, not branches, where the tag is a version string
+  only:
+    - /^v[0-9]+(\.[0-9]+){1,2}(-[0-9]+)?/
+  except:
+    - branches
+  stage: deploy
+  script:
+    - echo Not implemented

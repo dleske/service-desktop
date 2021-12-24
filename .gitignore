@@ -1,0 +1,6 @@
+.lintcache/
+.venv/
+TODO.md
+**/__pycache__/
+instance/
+.coverage

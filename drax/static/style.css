@@ -1,0 +1,83 @@
+body {
+  background-color: white;
+  background-image: url("https://example.org/images/logo.jpg");
+  background-position: 100% 2.5rem;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100000;
+  color: #dddddd;
+  background: gray;
+  padding: 0px 20px;
+  display: flex;
+  line-height: 1.2rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+nav h1 {
+  flex: auto;
+  font-size: 1rem;
+  padding: 0.5rem 0;
+} 
+
+nav a {
+  text-decoration: none;
+  color: inherit;
+}
+
+nav a:hover {
+  color: #ffffff;
+}
+
+nav ul  {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li {
+  display: block;
+  padding: 0.5rem;
+}
+
+header {
+  margin-top: 2.5rem;
+}
+main {
+  padding: 10px 24px;
+}
+.container {
+  display: flex;
+  align-items: center;
+}
+.image {
+  flex-basis: 33%
+}
+.text {
+  font-size: 20px;
+  padding-left: 20px;
+}
+/* How I handled the rotated text in the dividers:
+** https://dev.to/afif/how-to-correctly-position-rotated-text-using-css-1gjc
+*/
+.card-divider {
+  width: 4em;
+  font-size: 20px;
+  background: gray;
+  position: relative;
+}
+.card-divider h5 {
+  transform-origin: bottom left;
+  left: 0;
+  bottom: 0;
+  transform: rotate(-90deg) translateY(100%);
+  color: white;
+  position: absolute;
+}
+
